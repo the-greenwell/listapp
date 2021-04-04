@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const Item = require('./Item').schema;
 
 const List = mongoose.model(
   'List',
@@ -8,7 +7,12 @@ const List = mongoose.model(
       type: String,
       required: true
     },
-    content: [Item],
+    content: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Item'
+      }
+    ],
     owners: [
       {
         type: mongoose.Schema.Types.ObjectId,

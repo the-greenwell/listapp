@@ -5,7 +5,7 @@ const db = require('../models');
 
 // post data
 router.post('/:list_id', function(req, res, next) {
-
+  
 });
 
 // put data

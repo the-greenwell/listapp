@@ -13,7 +13,6 @@ const Item = new mongoose.Schema({
    type: Date,
    default: Date.now
  },
- likes: [],
  color: {
    type: String,
    default: 'color-8'
