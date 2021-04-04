@@ -26,8 +26,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/user', usersRouter);
-app.use('/list', listsRouter);
-app.use('/item', itemsRouter);
+app.use('/list', verifyToken, listsRouter);
+app.use('/item', verifyToken, itemsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -46,7 +46,7 @@ app.use(function(err, req, res, next) {
 });
 
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb+srv://greenwell-admin:DGnTS0NNervJdzT7@cluster0.tswd0.mongodb.net/listApp?retryWrites=true&w=majority', {
+mongoose.connect(process.env.DB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useCreateIndex: true

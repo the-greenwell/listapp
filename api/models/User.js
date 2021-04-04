@@ -21,7 +21,7 @@ var UserSchema = mongoose.model(
       min: 6,
       max: 1024,
     },
-    list: [
+    lists: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'List'

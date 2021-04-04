@@ -7,10 +7,11 @@ const verifyToken = (req, res, next) => {
   if (!token) return res.status(401).json({ error: "Access denied" });
 
   try {
-    const verified = jwt.verify(token, process.env.SECRET_TOKEN);
+    const verified = jwt.verify(token, process.env.SECRET);
     req.user = verified;
     next();
   } catch (err) {
+    console.log(err)
     res.status(400).json({ error: "Token is not valid" });
   }
 };

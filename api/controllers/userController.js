@@ -34,6 +34,7 @@ exports.login = async (req, res) => {
     return res.status(400).json({error: error.details[0].message});
   }
   const user = await db.User.findOne({ username: req.body.username });
+  console.log(user.lists)
   if(!user) {
     return res.status(400).json({ error: 'Username is wrong *CHANGE BEFOROE DEPLOY*'});
   }
@@ -46,7 +47,7 @@ exports.login = async (req, res) => {
       name: user.name,
       id: user._id,
     },
-    '9C26A669FDB771C833D1F03BEE5E133FE273FD9D0D46FF32DEE56FF90E8AE4AF', { expiresIn: '45m'});
+    process.env.SECRET, { expiresIn: '45m'});
     res.json({
       auth_token: token,
       userId: user._id,
