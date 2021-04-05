@@ -54,19 +54,37 @@ exports.updateList = async (req,res) => {
             }
           );
         } else {
-          res.send('invalid list')
-        }
+          res.send('invalid list');
+        };
       }
-    )
+    );
   } else {
-    res.send('invalid user')
+    res.send('invalid user');
   };
 };
 
 exports.removeListOwner = async (req,res) => {
-  if ( verifyUser(req.user, req.params.user_id) ) {
-
-  } else {
-    res.send('invalid user')
+  if (verifyUser(req.user, req.params.user_id)) {
+    const list = await db.User.findByIdAndUpdate(
+      req.user.id,
+      {$pull: {lists: req.params.list_id}},
+      async (err, user) => {
+        if(err) {res.json(err)}
+        var l = user.lists.includes(req.params.list_id);
+        if(l){
+          await db.List.findOneAndUpdate(
+            {_id: req.params.list_id},
+            {$pull: {owners: user._id}},
+            (err) => {
+              if(err) res.json(err);
+              else    res.send('list deleted');
+            })
+          } else {
+            res.send('invalid list');
+          };
+        }
+      );
+    } else {
+      res.send('invalid user')
+    };
   };
-};
