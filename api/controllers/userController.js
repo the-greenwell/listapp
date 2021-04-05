@@ -34,13 +34,12 @@ exports.login = async (req, res) => {
     return res.status(400).json({error: error.details[0].message});
   }
   const user = await db.User.findOne({ username: req.body.username });
-  console.log(user.lists)
   if(!user) {
-    return res.status(400).json({ error: 'Username is wrong *CHANGE BEFOROE DEPLOY*'});
+    return res.status(400).json({ error: 'Wrong Username or Password' });
   }
   const validPassword = await bcrypt.compare(req.body.password, user.password);
   if (!validPassword) {
-    return res.status(400).json({ error: "Password is wrong *CHANGE BEFOROE DEPLOY*" });
+    return res.status(400).json({ error: 'Wrong Username or Password' });
   }
   const token = jwt.sign(
     {

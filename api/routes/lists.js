@@ -7,9 +7,6 @@ const listController = require('../controllers/listController');
 // list data
 router.get('/:user_id', listController.getAllLists);
 
-// get data by id
-router.get('/:user_id/:list_id', listController.getList);
-
 // post data
 router.post('/:user_id', listController.addList);
 
