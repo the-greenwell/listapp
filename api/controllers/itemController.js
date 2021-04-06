@@ -25,6 +25,7 @@ exports.updateItem = (item_id,item_body,user_id) => {
     }).populate('owner', '_id');
 };
 
+
 exports.removeItem = async (item_id,list_id,user_id) => {
   await db.List.findOneAndUpdate(
     {'content._id': {$lte: list_id}},
