@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
     username: req.body.username,
     password: password,
   });
-  
+
   try {
     const savedUser = await user.save();
     res.json({ error: null, data: { userId: savedUser._id } });
@@ -47,7 +47,7 @@ exports.login = async (req, res) => {
       name: user.name,
       id: user._id,
     },
-    process.env.SECRET, { expiresIn: '45m'});
+    process.env.SECRET, { expiresIn: '60m'});
     res.json({
       auth_token: token,
       userId: user._id,

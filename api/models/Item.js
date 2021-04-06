@@ -16,6 +16,10 @@ const Item = new mongoose.Schema({
  color: {
    type: String,
    default: 'color-8'
+ },
+ owner: {
+   type: mongoose.Schema.Types.ObjectId,
+   ref: 'User'
  }
 });
 

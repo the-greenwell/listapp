@@ -46,7 +46,11 @@ const updateListOwnership = async (user,list,sender) => {
 
 exports.getAllLists = async (req,res) => {
   if( verifyUser(req.user, req.params.user_id) ){
-    const user = await db.User.findById(req.user.id).populate({path:'lists',populate: {path: 'owners', select: 'name'}, populate: 'content'});
+    const user = await db.User.findById(req.user.id).populate({
+      path:'lists',
+      populate: {path: 'owners', select: 'name'},
+      populate: {path:'content', populate: {path: 'owner', select: 'name'}}
+    });
     res.json(user.lists);
   } else {
     res.send('invalid user');
@@ -118,7 +122,7 @@ exports.removeListOwner = async (req,res) => {
 exports.addListItem = async (req,res) => {
   if (verifyUser(req.user, req.params.user_id)) {
     if ( verifyListOwner(req.user.id, req.params.list_id) ) {
-      var i = await itemController.addItem(req.body,req.params.list_id);
+      var i = await itemController.addItem(req.body,req.params.list_id,req.user.id);
       res.json(i)
     } else {
       res.send('invalid permission');
