@@ -16,36 +16,51 @@ const verifyListOwner = async (user, list) => {
   return verified;
 }
 
+const updateListOwnership = async (user,list,sender) => {
+  if(sender){
+    var l = await db.List.findOneAndUpdate(
+      {_id: list, 'owners': {$lte: sender}},
+      { $addToSet: { owners: user } },
+      { new: true, useFindAndModify: false }
+    ).populate('owners','name').populate('content');
+    await db.User.findOneAndUpdate(
+      {_id: user},
+      { $addToSet: { lists: l._id } },
+      { new: true, useFindAndModify: false }
+    );
+    return l;
+  } else {
+    var l = await db.List.findOneAndUpdate(
+      {_id: list},
+      { $addToSet: { owners: user } },
+      { new: true, useFindAndModify: false }
+    ).populate('owners','name').populate('content');
+    await db.User.findOneAndUpdate(
+      {_id: user},
+      { $addToSet: { lists: list } },
+      { new: true, useFindAndModify: false }
+    );
+    return l;
+  }
+};
+
 exports.getAllLists = async (req,res) => {
   if( verifyUser(req.user, req.params.user_id) ){
     const user = await db.User.findById(req.user.id).populate({path:'lists',populate: {path: 'owners', select: 'name'}, populate: 'content'});
     res.json(user.lists);
   } else {
-    res.send('invalid user')
+    res.send('invalid user');
   };
 };
 
 exports.addList = async (req,res) => {
-  const listOwnership = (user,list) => {
-    return db.List.findByIdAndUpdate(
-      list._id,
-      { $push: { owners: user } },
-      { new: true, useFindAndModify: false }
-    ).populate('owners','name');
-  };
-
   if ( verifyUser(req.user, req.params.user_id) ) {
     const list = await db.List.create(req.body).then(async newList => {
-      await db.User.findByIdAndUpdate(
-        req.user.id,
-        { $push: { lists: newList._id } },
-        { new: true, useFindAndModify: false }
-      );
-      return listOwnership(req.user.id, newList);
+      return updateListOwnership(req.user.id, newList._id);
     });
     res.json(list);
   } else {
-    res.send('invalid user')
+    res.send('invalid user');
   };
 };
 
@@ -56,20 +71,15 @@ exports.updateList = async (req,res) => {
         req.params.list_id,
         async (err, found) => {
           if(err) {res.json(err)}
-          var u = found.owners.includes(req.user.id);
-          if(u){
-            found.title = req.body.title,
-            await found.save().then(saved => {
-              res.json(saved);
-            }).catch(err => {
-              res.json(err)
-            });
-          } else {
-            res.send('invalid list');
-          };
+          found.title = req.body.title;
+          found.save().then(saved => {
+            res.json(saved);
+          }).catch(err => {
+            res.json(err)
+          });
         });
     } else {
-      res.send('no permission')
+      res.send('invalid permission');
     };
   } else {
     res.send('invalid user');
@@ -98,7 +108,7 @@ exports.removeListOwner = async (req,res) => {
             };
         });
     } else {
-      res.send('no permission')
+      res.send('invalid permission');
     };
   } else {
     res.send('invalid user')
@@ -108,21 +118,20 @@ exports.removeListOwner = async (req,res) => {
 exports.addListItem = async (req,res) => {
   if (verifyUser(req.user, req.params.user_id)) {
     if ( verifyListOwner(req.user.id, req.params.list_id) ) {
-      const list = await db.User.findById(
-        req.user.id,
-        async (err, user) => {
-          if(err) {res.json(err)}
-          var l = user.lists.includes(req.params.list_id);
-          var i = await itemController.addItem(req.body,req.params.list_id);
-          if(l){
-              res.json(i)
-            } else {
-              res.send('invalid list');
-            };
-        });
+      var i = await itemController.addItem(req.body,req.params.list_id);
+      res.json(i)
     } else {
-      res.send('no permission')
+      res.send('invalid permission');
     };
+  } else {
+    res.send('invalid user');
+  };
+}
+
+exports.addListOwner = async (req,res) => {
+  if (verifyUser(req.user, req.params.user_id)) {
+    var u = await updateListOwnership(req.user.id,req.params.list_id,req.params.sender_id);
+    res.json(u)
   } else {
     res.send('invalid user');
   };
@@ -134,7 +143,7 @@ exports.updateListItem = async (req,res) => {
       var i = await itemController.updateItem(req.params.item_id, req.body);
       res.json(i);
     } else {
-      res.send('no permission')
+      res.send('invalid permission');
     };
   } else {
     res.send('invalid user');
@@ -148,7 +157,7 @@ exports.removeListItem = async (req,res) => {
         .then(res.send('item removed'))
         .catch(err=> {res.json(err)});
     } else {
-      res.send('no permission')
+      res.send('invalid permission');
     };
   } else {
     res.send('invalid user');

@@ -20,6 +20,7 @@ exports.register = async (req, res) => {
     username: req.body.username,
     password: password,
   });
+  
   try {
     const savedUser = await user.save();
     res.json({ error: null, data: { userId: savedUser._id } });
