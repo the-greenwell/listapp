@@ -14,43 +14,53 @@ const verifyListOwner = async (user, list) => {
     }
   )
   return verified;
-}
+};
 
 const updateListOwnership = async (user,list,sender) => {
   if(sender){
-    var l = await db.List.findOneAndUpdate(
-      {_id: list, 'owners': {$lte: sender}},
-      { $addToSet: { owners: user } },
-      { new: true, useFindAndModify: false }
-    ).populate('owners','name').populate('content');
-    await db.User.findOneAndUpdate(
-      {_id: user},
-      { $addToSet: { lists: l._id } },
-      { new: true, useFindAndModify: false }
-    );
+    var l;
+    try {
+      l = await db.List.findOneAndUpdate(
+        {_id: list, 'owners': {$lte: sender}},
+        { $addToSet: { owners: user } },
+        { new: true, useFindAndModify: false }
+      ).populate('owners','name').populate('content');
+      await db.User.findOneAndUpdate(
+        {_id: user},
+        { $addToSet: { lists: l._id } },
+        { new: true, useFindAndModify: false }
+      );
+    } catch (err) {
+      return (`error: ${error.toString()}`);
+    }
     return l;
   } else {
-    var l = await db.List.findOneAndUpdate(
-      {_id: list},
-      { $addToSet: { owners: user } },
-      { new: true, useFindAndModify: false }
-    ).populate('owners','name').populate('content');
-    await db.User.findOneAndUpdate(
-      {_id: user},
-      { $addToSet: { lists: list } },
-      { new: true, useFindAndModify: false }
-    );
+    var l;
+    try {
+      l = await db.List.findOneAndUpdate(
+        {_id: list},
+        { $addToSet: { owners: user } },
+        { new: true, useFindAndModify: false }
+      ).populate('owners','name').populate('content');
+      await db.User.findOneAndUpdate(
+        {_id: user},
+        { $addToSet: { lists: list } },
+        { new: true, useFindAndModify: false }
+      );
+    } catch (err) {
+      return (`error: ${error.toString()}`);
+    }
     return l;
   }
 };
 
 exports.getAllLists = async (req,res) => {
   if( verifyUser(req.user, req.params.user_id) ){
-    const user = await db.User.findById(req.user.id).populate({
-      path:'lists',
-      populate: {path: 'owners', select: 'name'},
-      populate: {path:'content', populate: {path: 'owner', select: 'name'}}
-    });
+    var user = await db.User.findById(req.user.id).populate({
+        path:'lists',
+        populate: {path: 'owners', select: 'name'},
+        populate: {path:'content', populate: {path: 'owner', select: 'name'}}
+      });
     res.json(user.lists);
   } else {
     res.send('invalid user');
@@ -59,9 +69,14 @@ exports.getAllLists = async (req,res) => {
 
 exports.addList = async (req,res) => {
   if ( verifyUser(req.user, req.params.user_id) ) {
-    const list = await db.List.create(req.body).then(async newList => {
-      return updateListOwnership(req.user.id, newList._id);
-    });
+    var list;
+    try {
+      list = await db.List.create(req.body).then(async newList => {
+        return updateListOwnership(req.user.id, newList._id);
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.toString() });
+    }
     res.json(list);
   } else {
     res.send('invalid user');
@@ -71,10 +86,10 @@ exports.addList = async (req,res) => {
 exports.updateList = async (req,res) => {
   if ( verifyUser(req.user, req.params.user_id) ) {
     if ( verifyListOwner(req.user.id, req.params.list_id) ) {
-      const list = await db.List.findById(
+      var list = await db.List.findById(
         req.params.list_id,
         async (err, found) => {
-          if(err) {res.json(err)}
+          if(err) {res.status(400).json({ error: err.toString() })}
           found.title = req.body.title;
           found.save().then(saved => {
             res.json(saved);
@@ -93,11 +108,11 @@ exports.updateList = async (req,res) => {
 exports.removeListOwner = async (req,res) => {
   if (verifyUser(req.user, req.params.user_id)) {
     if ( verifyListOwner(req.user.id, req.params.list_id) ) {
-      const list = await db.User.findByIdAndUpdate(
+      var list = await db.User.findByIdAndUpdate(
         req.user.id,
         {$pull: {lists: req.params.list_id}},
         async (err, user) => {
-          if(err) {res.json(err)}
+          if(err) {res.status(400).json({ error: err.toString() })}
           var l = user.lists.includes(req.params.list_id);
           if(l){
             await db.List.findOneAndUpdate(
@@ -130,7 +145,7 @@ exports.addListItem = async (req,res) => {
   } else {
     res.send('invalid user');
   };
-}
+};
 
 exports.addListOwner = async (req,res) => {
   if (verifyUser(req.user, req.params.user_id)) {
@@ -139,12 +154,12 @@ exports.addListOwner = async (req,res) => {
   } else {
     res.send('invalid user');
   };
-}
+};
 
 exports.updateListItem = async (req,res) => {
   if (verifyUser(req.user, req.params.user_id)) {
     if ( verifyListOwner(req.user.id, req.params.list_id) ) {
-      var i = await itemController.updateItem(req.params.item_id, req.body);
+      var i = await itemController.updateItem(req.params.item_id, req.body, req.user.id);
       res.json(i);
     } else {
       res.send('invalid permission');
@@ -152,18 +167,17 @@ exports.updateListItem = async (req,res) => {
   } else {
     res.send('invalid user');
   };
-}
+};
 
 exports.removeListItem = async (req,res) => {
   if (verifyUser(req.user, req.params.user_id)) {
     if ( verifyListOwner(req.user.id, req.params.list_id) ) {
-      await itemController.removeItem(req.params.item_id, req.params.list_id)
-        .then(res.send('item removed'))
-        .catch(err=> {res.json(err)});
+      var i = await itemController.removeItem(req.params.item_id, req.params.list_id, req.user.id);
+      res.json(i);
     } else {
       res.send('invalid permission');
     };
   } else {
     res.send('invalid user');
   };
-}
+};
